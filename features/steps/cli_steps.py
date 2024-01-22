@@ -4,7 +4,7 @@ import json
 import shutil
 import textwrap
 from pathlib import Path
-from time import time
+from time import sleep, time
 
 import behave
 import requests
@@ -171,7 +171,7 @@ def create_config_file_without_starter(context):
     context.root_project_dir = context.temp_dir / context.project_name
     context.package_name = context.project_name.replace("-", "_")
     config = {
-        "tools": "1-5",
+        "tools": "lint, test, log, docs, data",
         "project_name": context.project_name,
         "example_pipeline": "no",
         "repo_name": context.project_name,
@@ -189,14 +189,12 @@ def create_config_file_with_tools(context, tools):
     It takes a custom tools list and sets example prompt to `y`.
     """
 
-    tools_str = tools if tools != "none" else ""
-
     context.config_file = context.temp_dir / "config.yml"
     context.project_name = "project-dummy"
     context.root_project_dir = context.temp_dir / context.project_name
     context.package_name = context.project_name.replace("-", "_")
     config = {
-        "tools": tools_str,
+        "tools": tools,
         "example_pipeline": "y",
         "project_name": context.project_name,
         "repo_name": context.project_name,
@@ -391,9 +389,12 @@ def exec_notebook(context, command):
 @then('I wait for the jupyter webserver to run for up to "{timeout:d}" seconds')
 def wait_for_notebook_to_run(context, timeout):
     timeout_start = time()
+    # FIXME: Will continue iterating after the process has returned
     while time() < timeout_start + timeout:
         stdout = context.result.stdout.readline()
         if "http://127.0.0.1:" in stdout:
+            # Take a breath, and declare success
+            sleep(1)
             break
 
     if time() >= timeout_start + timeout:
@@ -661,7 +662,7 @@ def check_jupyter_nb_proc_on_port(context: behave.runner.Context, port: int):
     """
     url = f"http://localhost:{port}"
     try:
-        _check_service_up(context, url, "Jupyter Notebook")
+        _check_service_up(context, url, "Jupyter Server")
     finally:
         context.result.terminate()
 
